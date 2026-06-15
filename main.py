@@ -21,7 +21,7 @@ class PokeProPlugin(Star):
         self._last = 0.0
         self._cnt = 0
 
-    def _cfg(self):
+    def _get_config(self):
         try:
             c = getattr(self, "config", None) or {}
         except Exception:
@@ -63,7 +63,7 @@ class PokeProPlugin(Star):
         return None
 
     async def _poke(self, tid, gid=None, ev=None):
-        cd = self._cfg()["cd"]
+        cd = self._get_config()["cd"]
         now = time.time()
         if now - self._last < cd:
             return False, f"冷却{cd}s"
@@ -135,7 +135,7 @@ class PokeProPlugin(Star):
     @filter.command("poke chuo")
     async def cmd_poke_chuo(self, event: AstrMessageEvent):
         """戳人: /poke chuo @某人 或 /poke chuo QQ号"""
-        cfg = self._cfg()
+        cfg = self._get_config()
         if not cfg["enable"]:
             yield event.plain_result("❌ 已禁用")
             return
@@ -168,7 +168,7 @@ class PokeProPlugin(Star):
     @filter.command("poke status")
     async def cmd_poke_status(self, event: AstrMessageEvent):
         """状态: /poke status"""
-        cfg = self._cfg()
+        cfg = self._get_config()
         cli = await self._cli(event)
         yield event.plain_result(
             f"PokePro v2.6.0 | "
@@ -179,3 +179,26 @@ class PokeProPlugin(Star):
             f"pokes:{self._cnt} | "
             f"QQ:{'🟢' if cli else '🔴'}"
         )
+
+    @filter.command("poke perm")
+    async def cmd_poke_perm(self, event: AstrMessageEvent):
+        """切换权限: /poke perm all 或 /poke perm admin（仅管理员可用）"""
+        if getattr(event, "role", "") != "admin":
+            yield event.plain_result("❌ 仅管理员可修改权限")
+            return
+
+        txt = self._txt(event).strip()
+        if "all" in txt.lower():
+            try:
+                self.config["poke_permission"] = "all"
+                yield event.plain_result("✅ 主动戳人 → 所有人可用")
+            except Exception:
+                yield event.plain_result("❌ 保存失败，请去 WebUI 配置")
+        elif "admin" in txt.lower():
+            try:
+                self.config["poke_permission"] = "admin"
+                yield event.plain_result("✅ 主动戳人 → 仅管理员")
+            except Exception:
+                yield event.plain_result("❌ 保存失败，请去 WebUI 配置")
+        else:
+            yield event.plain_result("❌ 用法: /poke perm all  或  /poke perm admin")
