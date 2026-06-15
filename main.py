@@ -1,8 +1,8 @@
 """
-astrbot_plugin_poke_pro v2.6.0
-/poke_chuo @某人    — 手动戳人
-/poke_chuo QQ号    — 直接戳QQ号
-/poke_status       — 查看状态
+astrbot_plugin_poke_pro - 专业戳一戳插件
+/poke chuo @某人 / QQ号  — 手动戳人
+/poke status             — 查看状态
+/poke perm all/admin     — 管理员切换权限
 """
 
 import re
@@ -13,7 +13,7 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 
 
-@register("astrbot_plugin_poke_pro", "bentianjia", "专业戳一戳插件", "2.6.0")
+@register("astrbot_plugin_poke_pro", "bentianjia", "专业戳一戳插件", "3.0.0")
 class PokeProPlugin(Star):
 
     def __init__(self, context: Context):
@@ -40,7 +40,7 @@ class PokeProPlugin(Star):
             "cd": int(c.get("poke_cooldown", 10)),
         }
 
-    async def _cli(self, ev):
+    async def _client(self, ev=None):
         try:
             if ev:
                 for a in ("_platform", "platform"):
@@ -67,21 +67,21 @@ class PokeProPlugin(Star):
         now = time.time()
         if now - self._last < cd:
             return False, f"冷却{cd}s"
-        client = await self._cli(ev)
-        if not client:
+        c = await self._client(ev)
+        if not c:
             return False, "QQ未连接"
         try:
             if gid:
-                await client.call_action("group_poke", group_id=int(gid), user_id=int(tid))
+                await c.call_action("group_poke", group_id=int(gid), user_id=int(tid))
             else:
-                await client.call_action("friend_poke", user_id=int(tid))
+                await c.call_action("friend_poke", user_id=int(tid))
             self._last = now
             self._cnt += 1
             return True, ""
         except Exception as e:
             return False, str(e)
 
-    def _txt(self, ev):
+    def _text(self, ev):
         raw = ev.message_obj
         for m in ["get_message", "message_str"]:
             if hasattr(raw, m):
@@ -95,12 +95,10 @@ class PokeProPlugin(Star):
             for s in segs:
                 if str(getattr(s, "type", "")) == "at":
                     qq = (getattr(s, "data", {}) or {}).get("qq", "")
-                    if qq:
-                        qqs.append(int(qq))
+                    if qq: qqs.append(int(qq))
                 elif isinstance(s, dict) and s.get("type") == "at":
                     qq = (s.get("data") or {}).get("qq", "")
-                    if qq:
-                        qqs.append(int(qq))
+                    if qq: qqs.append(int(qq))
         except Exception:
             pass
         return qqs
@@ -124,81 +122,67 @@ class PokeProPlugin(Star):
                 return int(ev.get_sender_id())
             for a in ("sender_id", "user_id", "sender_qq"):
                 v = getattr(ev.message_obj, a, None)
-                if v:
-                    return int(v)
+                if v: return int(v)
         except Exception:
             pass
         return None
 
-    # ── 指令 ────────────────────────────────────────
-
     @filter.command("poke chuo")
     async def cmd_poke_chuo(self, event: AstrMessageEvent):
-        """戳人: /poke chuo @某人 或 /poke chuo QQ号"""
         cfg = self._get_config()
         if not cfg["enable"]:
-            yield event.plain_result("❌ 已禁用")
+            yield event.plain_result("已禁用")
             return
         if cfg["perm"] == "admin" and getattr(event, "role", "") != "admin":
-            yield event.plain_result("❌ 仅管理员")
+            yield event.plain_result("仅管理员可用")
             return
-
         target = None
         qqs = self._ats(event)
         if qqs:
             target = qqs[0]
         else:
-            txt = self._txt(event)
+            txt = self._text(event)
             txt = re.sub(r".*?poke\s+chuo\s*", "", txt, flags=re.IGNORECASE).strip()
             m = re.search(r"(\d{5,11})", txt)
-            if m:
-                target = int(m.group(1))
-
+            if m: target = int(m.group(1))
         if not target:
-            yield event.plain_result("❌ 用法: /poke_chuo @某人 或 /poke_chuo QQ号")
+            yield event.plain_result("/poke chuo @某人 或 /poke chuo QQ号")
             return
-
         gid = self._gid(event)
         ok, err = await self._poke(target, gid, event)
         if ok:
-            yield event.plain_result(f"✅ 戳了 QQ:{target}")
+            yield event.plain_result(f"戳了 QQ:{target}")
         else:
-            yield event.plain_result(f"❌ {err}")
+            yield event.plain_result(f"失败: {err}")
 
     @filter.command("poke status")
     async def cmd_poke_status(self, event: AstrMessageEvent):
-        """状态: /poke status"""
         cfg = self._get_config()
-        cli = await self._cli(event)
+        cli = await self._client(event)
         yield event.plain_result(
-            f"PokePro v2.6.0 | "
-            f"{'🟢' if cfg['enable'] else '🔴'} | "
-            f"perm:{cfg['perm']} | "
-            f"kw:{'🟢' if cfg['kw_mode'] else '🔴'} | "
-            f"cd:{cfg['cd']}s | "
-            f"pokes:{self._cnt} | "
+            f"PokePro v3.0.0 | {'🟢' if cfg['enable'] else '🔴'} | "
+            f"perm:{cfg['perm']} | kw:{'🟢' if cfg['kw_mode'] else '🔴'} | "
+            f"cd:{cfg['cd']}s | pokes:{self._cnt} | "
             f"QQ:{'🟢' if cli else '🔴'}"
         )
 
     @filter.command("poke perm")
     async def cmd_poke_perm(self, event: AstrMessageEvent):
-        """切换权限: /poke perm all 或 /poke perm admin（仅管理员可用）"""
         if getattr(event, "role", "") != "admin":
-            yield event.plain_result("❌ 仅管理员可修改权限")
+            yield event.plain_result("仅管理员")
             return
-
-        txt = self._txt(event).strip()
-        if "all" in txt.lower():
+        txt = self._text(event).strip().lower()
+        if "all" in txt:
             try:
                 self.config["poke_permission"] = "all"
-                yield event.plain_result("✅ 主动戳人 → 所有人可用")
+                yield event.plain_result("主动戳人 -> 所有人可用")
             except Exception:
-                yield event.plain_result("❌ 保存失败，请去 WebUI 配置")
-        elif "admin" in txt.lower():
+                yield event.plain_result("保存失败，请去 WebUI 改")
+        elif "admin" in txt:
             try:
                 self.config["poke_permission"] = "admin"
-                yield event.plain_result("✅ 主动戳人 → 仅管理员")
+                yield event.plain_result("主动戳人 -> 仅管理员")
             except Exception:
-                yield event.plain_result("❌ 保存失败，请去 WebUI 配置")
+                yield event.plain_result("保存失败，请去 WebUI 改")
         else:
-            yield event.plain_result("❌ 用法: /poke perm all  或  /poke perm admin")
+            yield event.plain_result("用法: /poke perm all 或 /poke perm admin")
