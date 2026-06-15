@@ -13,7 +13,7 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 
 
-@register("astrbot_plugin_poke_pro", "bentianjia", "专业戳一戳插件", "3.0.0")
+@register("astrbot_plugin_poke_pro", "bentianjia", "专业戳一戳插件", "3.1.0")
 class PokeProPlugin(Star):
 
     def __init__(self, context: Context):
@@ -160,29 +160,70 @@ class PokeProPlugin(Star):
         cfg = self._get_config()
         cli = await self._client(event)
         yield event.plain_result(
-            f"PokePro v3.0.0 | {'🟢' if cfg['enable'] else '🔴'} | "
+            f"PokePro v3.1.0 | {'🟢' if cfg['enable'] else '🔴'} | "
             f"perm:{cfg['perm']} | kw:{'🟢' if cfg['kw_mode'] else '🔴'} | "
             f"cd:{cfg['cd']}s | pokes:{self._cnt} | "
             f"QQ:{'🟢' if cli else '🔴'}"
         )
 
+    def _admin_only(self, event):
+        if getattr(event, "role", "") != "admin":
+            raise PermissionError("仅管理员可用")
+
+    def _save(self, key, val):
+        try:
+            self.config[key] = val
+            return True
+        except Exception:
+            return False
+
     @filter.command("poke perm")
     async def cmd_poke_perm(self, event: AstrMessageEvent):
-        if getattr(event, "role", "") != "admin":
-            yield event.plain_result("仅管理员")
+        """ /poke perm all|admin """
+        try:
+            self._admin_only(event)
+        except PermissionError:
+            yield event.plain_result("仅管理员可用")
             return
         txt = self._text(event).strip().lower()
         if "all" in txt:
-            try:
-                self.config["poke_permission"] = "all"
-                yield event.plain_result("主动戳人 -> 所有人可用")
-            except Exception:
-                yield event.plain_result("保存失败，请去 WebUI 改")
+            yield event.plain_result("主动戳人 -> 所有人可用" if self._save("poke_permission", "all") else "保存失败")
         elif "admin" in txt:
-            try:
-                self.config["poke_permission"] = "admin"
-                yield event.plain_result("主动戳人 -> 仅管理员")
-            except Exception:
-                yield event.plain_result("保存失败，请去 WebUI 改")
+            yield event.plain_result("主动戳人 -> 仅管理员" if self._save("poke_permission", "admin") else "保存失败")
         else:
-            yield event.plain_result("用法: /poke perm all 或 /poke perm admin")
+            yield event.plain_result("/poke perm all 或 /poke perm admin")
+
+    @filter.command("poke keyword")
+    async def cmd_poke_keyword(self, event: AstrMessageEvent):
+        """ /poke keyword on|off """
+        try:
+            self._admin_only(event)
+        except PermissionError:
+            yield event.plain_result("仅管理员可用")
+            return
+        txt = self._text(event).strip().lower()
+        if "on" in txt:
+            yield event.plain_result("关键词自动戳 -> 开" if self._save("keyword_mode", True) else "保存失败")
+        elif "off" in txt:
+            yield event.plain_result("关键词自动戳 -> 关" if self._save("keyword_mode", False) else "保存失败")
+        else:
+            yield event.plain_result("/poke keyword on 或 /poke keyword off")
+
+    @filter.command("poke cool")
+    async def cmd_poke_cool(self, event: AstrMessageEvent):
+        """ /poke cool <秒数> """
+        try:
+            self._admin_only(event)
+        except PermissionError:
+            yield event.plain_result("仅管理员可用")
+            return
+        txt = self._text(event).strip()
+        m = re.search(r"(\d+)", txt)
+        if m:
+            s = int(m.group(1))
+            if 3 <= s <= 120:
+                yield event.plain_result(f"冷却 -> {s}s" if self._save("poke_cooldown", s) else "保存失败")
+            else:
+                yield event.plain_result("3-120秒之间")
+        else:
+            yield event.plain_result("/poke cool <秒数> 如 /poke cool 30")

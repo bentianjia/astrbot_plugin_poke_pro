@@ -1,5 +1,5 @@
 name: astrbot_plugin_poke_pro
 author: bentianjia
 desc: 专业戳一戳插件，支持主动戳人和自动戳人。通过 /poke chuo @某人 或 /poke chuo QQ号 可以主动戳指定用户，支持群聊和私聊场景。
-version: "3.0.0"
+version: "3.1.0"
 repo: "https://github.com/bentianjia/astrbot_plugin_poke_pro"
