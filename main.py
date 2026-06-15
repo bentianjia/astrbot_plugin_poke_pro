@@ -1,5 +1,5 @@
 """
-astrbot_plugin_poke_pro v2.5.0
+astrbot_plugin_poke_pro v2.6.0
 /poke_chuo @某人    — 手动戳人
 /poke_chuo QQ号    — 直接戳QQ号
 /poke_status       — 查看状态
@@ -13,7 +13,7 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 
 
-@register("astrbot_plugin_poke_pro", "bentianjia", "专业戳一戳插件", "2.5.0")
+@register("astrbot_plugin_poke_pro", "bentianjia", "专业戳一戳插件", "2.6.0")
 class PokeProPlugin(Star):
 
     def __init__(self, context: Context):
@@ -132,9 +132,9 @@ class PokeProPlugin(Star):
 
     # ── 指令 ────────────────────────────────────────
 
-    @filter.command("poke_chuo")
+    @filter.command("poke chuo")
     async def cmd_poke_chuo(self, event: AstrMessageEvent):
-        """戳人: /poke_chuo @某人 或 /poke_chuo QQ号"""
+        """戳人: /poke chuo @某人 或 /poke chuo QQ号"""
         cfg = self._cfg()
         if not cfg["enable"]:
             yield event.plain_result("❌ 已禁用")
@@ -149,7 +149,7 @@ class PokeProPlugin(Star):
             target = qqs[0]
         else:
             txt = self._txt(event)
-            txt = re.sub(r".*?poke_chuo\s*", "", txt, flags=re.IGNORECASE).strip()
+            txt = re.sub(r".*?poke\s+chuo\s*", "", txt, flags=re.IGNORECASE).strip()
             m = re.search(r"(\d{5,11})", txt)
             if m:
                 target = int(m.group(1))
@@ -165,13 +165,13 @@ class PokeProPlugin(Star):
         else:
             yield event.plain_result(f"❌ {err}")
 
-    @filter.command("poke_status")
+    @filter.command("poke status")
     async def cmd_poke_status(self, event: AstrMessageEvent):
-        """状态: /poke_status"""
+        """状态: /poke status"""
         cfg = self._cfg()
         cli = await self._cli(event)
         yield event.plain_result(
-            f"PokePro v2.5.0 | "
+            f"PokePro v2.6.0 | "
             f"{'🟢' if cfg['enable'] else '🔴'} | "
             f"perm:{cfg['perm']} | "
             f"kw:{'🟢' if cfg['kw_mode'] else '🔴'} | "
