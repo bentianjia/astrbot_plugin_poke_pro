@@ -3,40 +3,39 @@
     "description": "启用插件",
     "type": "bool",
     "default": true,
-    "hint": "是否启用戳一戳插件"
+    "hint": "总开关"
   },
   "poke_permission": {
     "description": "主动戳人权限",
     "type": "string",
     "options": ["all", "admin"],
-    "labels": ["所有人可用", "仅管理员"],
-    "default": "all",
-    "hint": "控制 /poke chuo 指令的使用权限"
+    "labels": ["所有人", "仅管理员"],
+    "default": "all"
   },
   "keyword_mode": {
-    "description": "关键词自动戳人",
+    "description": "关键词触发",
     "type": "bool",
     "default": true,
-    "hint": "检测到关键词时自动戳发送者（仅群聊生效）"
+    "hint": "检测到关键词时自动戳"
   },
   "context_aware_keywords": {
-    "description": "触发关键词",
+    "description": "关键词",
     "type": "string",
-    "default": "戳我,戳戳,戳一下,戳一戳,戳戳戳,poke me,poke",
-    "hint": "逗号分隔。可清空关闭关键词功能"
-  },
-  "context_aware_reply": {
-    "description": "戳前回复",
-    "type": "bool",
-    "default": true,
-    "hint": "自动戳人前先发一条提示"
+    "default": "戳我,戳戳,戳一下,戳一戳,poke me,poke"
   },
   "poke_cooldown": {
-    "description": "戳人冷却（秒）",
+    "description": "戳人冷却(秒)",
     "type": "int",
     "default": 10,
     "min": 3,
-    "max": 120,
-    "hint": "两次戳人之间的最小间隔"
+    "max": 120
+  },
+  "poke_back_cooldown": {
+    "description": "反戳冷却(秒)",
+    "type": "int",
+    "default": 30,
+    "min": 10,
+    "max": 300,
+    "hint": "被戳后反戳的最小间隔，LLM 决定反戳后冷却"
   }
 }
